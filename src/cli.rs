@@ -18,7 +18,8 @@ Credentials:
 
 /// List an artist's albums with links to the albums and their cover art.
 #[derive(Debug, Parser)]
-#[command(name = "covers", version, after_help = AFTER_HELP)]
+// `bin_name` keeps the help saying "covers" on Windows too, instead of "covers.exe".
+#[command(name = "covers", bin_name = "covers", version, after_help = AFTER_HELP)]
 pub struct Cli {
     /// Link to an artist on Spotify or TIDAL (see the examples below)
     #[arg(value_name = "ARTIST_LINK")]
