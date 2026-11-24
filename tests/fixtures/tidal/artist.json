@@ -1,0 +1,88 @@
+{
+  "data": {
+    "id": "4242",
+    "type": "artists",
+    "attributes": {
+      "name": "The Test Pilots",
+      "popularity": 0.42,
+      "externalLinks": [
+        { "href": "https://tidal.com/browse/artist/4242", "meta": { "type": "TIDAL_SHARING" } }
+      ]
+    },
+    "relationships": {
+      "albums": {
+        "data": [
+          { "id": "1001", "type": "albums" },
+          { "id": "1002", "type": "albums" }
+        ],
+        "links": {
+          "self": "/artists/4242/relationships/albums?countryCode=US",
+          "next": "/artists/4242/relationships/albums?countryCode=US&page%5Bcursor%5D=page2",
+          "meta": { "nextCursor": "page2" }
+        }
+      }
+    }
+  },
+  "included": [
+    {
+      "id": "1002",
+      "type": "albums",
+      "attributes": {
+        "title": "Night Drive",
+        "version": "Deluxe Edition",
+        "numberOfItems": 14,
+        "releaseDate": "2021-03-05",
+        "externalLinks": [
+          { "href": "https://tidal.com/browse/album/1002", "meta": { "type": "TIDAL_SHARING" } }
+        ],
+        "type": "ALBUM",
+        "albumType": "ALBUM"
+      },
+      "relationships": {
+        "coverArt": {
+          "data": [ { "id": "art1002", "type": "artworks" } ],
+          "links": { "self": "/albums/1002/relationships/coverArt?countryCode=US" }
+        }
+      }
+    },
+    {
+      "id": "art1001",
+      "type": "artworks",
+      "attributes": {
+        "mediaType": "IMAGE",
+        "files": [
+          { "href": "https://resources.tidal.com/images/first/light/640x640.jpg", "type": "image/jpeg", "meta": { "width": 640, "height": 640 } },
+          { "href": "https://resources.tidal.com/images/first/light/1280x1280.jpg", "type": "image/jpeg", "meta": { "width": 1280, "height": 1280 } }
+        ]
+      }
+    },
+    {
+      "id": "1001",
+      "type": "albums",
+      "attributes": {
+        "title": "First Light",
+        "numberOfItems": 11,
+        "releaseDate": "2015-04-10",
+        "type": "ALBUM",
+        "albumType": "ALBUM"
+      },
+      "relationships": {
+        "coverArt": {
+          "data": [ { "id": "art1001", "type": "artworks" } ],
+          "links": { "self": "/albums/1001/relationships/coverArt?countryCode=US" }
+        }
+      }
+    },
+    {
+      "id": "art1002",
+      "type": "artworks",
+      "attributes": {
+        "mediaType": "IMAGE",
+        "files": [
+          { "href": "https://resources.tidal.com/images/night/drive/1280x1280.jpg", "type": "image/jpeg", "meta": { "width": 1280, "height": 1280 } }
+        ]
+      }
+    }
+  ],
+  "links": { "self": "/artists/4242?include=albums.coverArt&countryCode=US" }
+}

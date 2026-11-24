@@ -1,0 +1,92 @@
+{
+  "href" : "https://api.spotify.com/v1/artists/0TestPilots00000000000/albums?offset=10&limit=10&include_groups=album&market=US",
+  "limit" : 10,
+  "next" : null,
+  "offset" : 10,
+  "previous" : "https://api.spotify.com/v1/artists/0TestPilots00000000000/albums?offset=0&limit=10&include_groups=album&market=US",
+  "total" : 14,
+  "items" : [ {
+    "album_type" : "album",
+    "total_tracks" : 11,
+    "href" : "https://api.spotify.com/v1/albums/1FirstLight00000000000",
+    "id" : "1FirstLight00000000000",
+    "images" : [ {
+      "url" : "https://i.scdn.co/image/ab67616d00001e02firstlight",
+      "height" : 300,
+      "width" : 300
+    }, {
+      "url" : "https://i.scdn.co/image/ab67616d0000b273firstlight",
+      "height" : 640,
+      "width" : 640
+    } ],
+    "name" : "First Light",
+    "release_date" : "2015",
+    "release_date_precision" : "year",
+    "type" : "album",
+    "uri" : "spotify:album:1FirstLight00000000000",
+    "artists" : [ {
+      "id" : "0TestPilots00000000000",
+      "name" : "The Test Pilots",
+      "type" : "artist"
+    } ]
+  }, {
+    "album_type" : "single",
+    "total_tracks" : 5,
+    "external_urls" : {
+      "spotify" : "https://open.spotify.com/album/1SignalsEP000000000000"
+    },
+    "id" : "1SignalsEP000000000000",
+    "images" : [ {
+      "url" : "https://i.scdn.co/image/ab67616d0000b273signals",
+      "height" : 640,
+      "width" : 640
+    } ],
+    "name" : "Signals",
+    "release_date" : "2018-06-01",
+    "release_date_precision" : "day",
+    "type" : "album",
+    "artists" : [ {
+      "id" : "0TestPilots00000000000",
+      "name" : "The Test Pilots",
+      "type" : "artist"
+    } ]
+  }, {
+    "album_type" : "single",
+    "total_tracks" : 1,
+    "external_urls" : {
+      "spotify" : "https://open.spotify.com/album/1Hello0000000000000000"
+    },
+    "id" : "1Hello0000000000000000",
+    "images" : [ {
+      "url" : "https://i.scdn.co/image/ab67616d0000b273hello",
+      "height" : null,
+      "width" : null
+    } ],
+    "name" : "Hello",
+    "release_date" : "2014-02-14",
+    "release_date_precision" : "day",
+    "type" : "album",
+    "artists" : [ {
+      "id" : "0TestPilots00000000000",
+      "name" : "The Test Pilots",
+      "type" : "artist"
+    } ]
+  }, {
+    "album_type" : "compilation",
+    "total_tracks" : 20,
+    "external_urls" : {
+      "spotify" : "https://open.spotify.com/album/1IndieSampler000000000"
+    },
+    "id" : "1IndieSampler000000000",
+    "images" : [ ],
+    "name" : "Indie Sampler 2020",
+    "release_date" : "2020-01-10",
+    "release_date_precision" : "day",
+    "type" : "album",
+    "artists" : [ {
+      "id" : "0VariousArtists0000000",
+      "name" : "Various Artists",
+      "type" : "artist"
+    } ]
+  } ]
+}

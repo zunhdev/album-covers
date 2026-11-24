@@ -1,0 +1,2 @@
+# Normalize line endings, so every platform checks out the same bytes.
+* text=auto eol=lf

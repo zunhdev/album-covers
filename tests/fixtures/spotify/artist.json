@@ -1,0 +1,11 @@
+{
+  "external_urls" : {
+    "spotify" : "https://open.spotify.com/artist/0TestPilots00000000000"
+  },
+  "href" : "https://api.spotify.com/v1/artists/0TestPilots00000000000",
+  "id" : "0TestPilots00000000000",
+  "images" : [ ],
+  "name" : "The Test Pilots",
+  "type" : "artist",
+  "uri" : "spotify:artist:0TestPilots00000000000"
+}

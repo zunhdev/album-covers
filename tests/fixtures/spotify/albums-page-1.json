@@ -1,0 +1,89 @@
+{
+  "href" : "https://api.spotify.com/v1/artists/0TestPilots00000000000/albums?offset=0&limit=10&include_groups=album&market=US",
+  "limit" : 10,
+  "next" : "https://api.spotify.com/v1/artists/0TestPilots00000000000/albums?offset=10&limit=10&include_groups=album&market=US",
+  "offset" : 0,
+  "previous" : null,
+  "total" : 14,
+  "items" : [ {
+    "album_type" : "album",
+    "total_tracks" : 14,
+    "external_urls" : {
+      "spotify" : "https://open.spotify.com/album/1NightDriveDeluxe00000"
+    },
+    "href" : "https://api.spotify.com/v1/albums/1NightDriveDeluxe00000",
+    "id" : "1NightDriveDeluxe00000",
+    "images" : [ {
+      "url" : "https://i.scdn.co/image/ab67616d0000b273nightdrivedeluxe",
+      "height" : 640,
+      "width" : 640
+    }, {
+      "url" : "https://i.scdn.co/image/ab67616d00001e02nightdrivedeluxe",
+      "height" : 300,
+      "width" : 300
+    }, {
+      "url" : "https://i.scdn.co/image/ab67616d00004851nightdrivedeluxe",
+      "height" : 64,
+      "width" : 64
+    } ],
+    "name" : "Night Drive (Deluxe Edition)",
+    "release_date" : "2021-03-05",
+    "release_date_precision" : "day",
+    "type" : "album",
+    "uri" : "spotify:album:1NightDriveDeluxe00000",
+    "artists" : [ {
+      "external_urls" : { "spotify" : "https://open.spotify.com/artist/0TestPilots00000000000" },
+      "href" : "https://api.spotify.com/v1/artists/0TestPilots00000000000",
+      "id" : "0TestPilots00000000000",
+      "name" : "The Test Pilots",
+      "type" : "artist",
+      "uri" : "spotify:artist:0TestPilots00000000000"
+    } ]
+  }, {
+    "album_type" : "album",
+    "total_tracks" : 10,
+    "external_urls" : {
+      "spotify" : "https://open.spotify.com/album/1NightDrive000000000000"
+    },
+    "href" : "https://api.spotify.com/v1/albums/1NightDrive000000000000",
+    "id" : "1NightDrive000000000000",
+    "images" : [ {
+      "url" : "https://i.scdn.co/image/ab67616d0000b273nightdrive",
+      "height" : 640,
+      "width" : 640
+    } ],
+    "name" : "Night Drive",
+    "release_date" : "2021-03-05",
+    "release_date_precision" : "day",
+    "type" : "album",
+    "uri" : "spotify:album:1NightDrive000000000000",
+    "artists" : [ {
+      "id" : "0TestPilots00000000000",
+      "name" : "The Test Pilots",
+      "type" : "artist"
+    } ]
+  }, {
+    "album_type" : "album",
+    "total_tracks" : 12,
+    "external_urls" : {
+      "spotify" : "https://open.spotify.com/album/1LiveRoundhouse0000000"
+    },
+    "href" : "https://api.spotify.com/v1/albums/1LiveRoundhouse0000000",
+    "id" : "1LiveRoundhouse0000000",
+    "images" : [ {
+      "url" : "https://i.scdn.co/image/ab67616d0000b273roundhouse",
+      "height" : 640,
+      "width" : 640
+    } ],
+    "name" : "Live at the Roundhouse",
+    "release_date" : "2019-11",
+    "release_date_precision" : "month",
+    "type" : "album",
+    "uri" : "spotify:album:1LiveRoundhouse0000000",
+    "artists" : [ {
+      "id" : "0TestPilots00000000000",
+      "name" : "The Test Pilots",
+      "type" : "artist"
+    } ]
+  } ]
+}

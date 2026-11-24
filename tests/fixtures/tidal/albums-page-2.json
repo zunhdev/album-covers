@@ -1,0 +1,73 @@
+{
+  "data": [
+    { "id": "1003", "type": "albums" },
+    { "id": "1004", "type": "albums" },
+    { "id": "1005", "type": "albums" }
+  ],
+  "included": [
+    {
+      "id": "1003",
+      "type": "albums",
+      "attributes": { "title": "Live at the Roundhouse", "releaseDate": "2019-11-22", "type": "ALBUM", "albumType": "ALBUM" },
+      "relationships": {
+        "coverArt": {
+          "data": [ { "id": "art1003video", "type": "artworks" }, { "id": "art1003", "type": "artworks" } ],
+          "links": { "self": "/albums/1003/relationships/coverArt?countryCode=US" }
+        }
+      }
+    },
+    {
+      "id": "art1003video",
+      "type": "artworks",
+      "attributes": {
+        "mediaType": "VIDEO",
+        "files": [
+          { "href": "https://resources.tidal.com/videos/roundhouse/1280x1280.mp4", "type": "video/mp4", "meta": { "width": 1280, "height": 1280 } }
+        ]
+      }
+    },
+    {
+      "id": "art1003",
+      "type": "artworks",
+      "attributes": {
+        "mediaType": "IMAGE",
+        "files": [
+          { "href": "https://resources.tidal.com/images/roundhouse/1280x1280.jpg", "type": "image/jpeg", "meta": { "width": 1280, "height": 1280 } }
+        ]
+      }
+    },
+    {
+      "id": "1004",
+      "type": "albums",
+      "attributes": { "title": "Signals", "releaseDate": "2018-06-01", "type": "ALBUM", "albumType": "EP" },
+      "relationships": {
+        "coverArt": {
+          "data": [ { "id": "art1004", "type": "artworks" } ],
+          "links": { "self": "/albums/1004/relationships/coverArt?countryCode=US" }
+        }
+      }
+    },
+    {
+      "id": "art1004",
+      "type": "artworks",
+      "attributes": {
+        "mediaType": "IMAGE",
+        "files": [
+          { "href": "https://resources.tidal.com/images/signals/1280x1280.jpg", "type": "image/jpeg", "meta": { "width": 1280, "height": 1280 } }
+        ]
+      }
+    },
+    {
+      "id": "1005",
+      "type": "albums",
+      "attributes": { "title": "Hello", "releaseDate": "2014-02-14", "type": "ALBUM", "albumType": "SINGLE" },
+      "relationships": {
+        "coverArt": {
+          "data": [],
+          "links": { "self": "/albums/1005/relationships/coverArt?countryCode=US" }
+        }
+      }
+    }
+  ],
+  "links": { "self": "/artists/4242/relationships/albums?include=albums.coverArt&countryCode=US&page%5Bcursor%5D=page2" }
+}
