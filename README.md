@@ -6,6 +6,7 @@
 
 Paste a TIDAL or Spotify artist link and get a clean, chronological discography in your terminal.
 
+[![Latest release](https://img.shields.io/github/v/release/zunhdev/album-covers?sort=semver)](https://github.com/zunhdev/album-covers/releases/latest)
 [![CI](https://github.com/zunhdev/album-covers/actions/workflows/ci.yml/badge.svg)](https://github.com/zunhdev/album-covers/actions/workflows/ci.yml)
 [![Dependencies](https://deps.rs/repo/github/zunhdev/album-covers/status.svg)](https://deps.rs/repo/github/zunhdev/album-covers)
 [![Rust](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fzunhdev%2Falbum-covers%2Fmain%2FCargo.toml&query=%24.package%5B%27rust-version%27%5D&label=rust&prefix=%E2%89%A5%20&logo=rust&color=orange)](https://www.rust-lang.org)
@@ -38,23 +39,73 @@ Paste a TIDAL or Spotify artist link and get a clean, chronological discography 
 
 ## Quick start
 
-```sh
-cargo install --locked --git https://github.com/zunhdev/album-covers   # 1. install
-# 2. save your TIDAL or Spotify credentials (see "Set up" below)
-covers https://tidal.com/artist/3974492                                # 3. go
-```
+1. [Install](#install) `covers`: download it, or build it with Cargo.
+2. Save your TIDAL or Spotify credentials (see [Set up](#set-up-once)).
+3. Run `covers https://tidal.com/artist/3974492`.
 
 ## Install
 
-`covers` is written in Rust. If you don't have Rust yet, get it from [rustup.rs](https://rustup.rs)
-(one command, no admin rights needed). Then:
+### Download a prebuilt binary
+
+No Rust needed. Every [release](https://github.com/zunhdev/album-covers/releases/latest) has
+ready-to-run binaries:
+
+| System                           | File                                             |
+| -------------------------------- | ------------------------------------------------ |
+| macOS, Apple silicon             | `album-covers-aarch64-apple-darwin.tar.gz`       |
+| macOS, Intel                     | `album-covers-x86_64-apple-darwin.tar.gz`        |
+| Linux, x86-64 (any distribution) | `album-covers-x86_64-unknown-linux-musl.tar.gz`  |
+| Linux, ARM64 (any distribution)  | `album-covers-aarch64-unknown-linux-musl.tar.gz` |
+| Windows (x64 and ARM)            | `album-covers-x86_64-pc-windows-msvc.zip`        |
+
+On macOS and Linux, this installs or updates `covers` in `~/.local/bin`:
+
+```sh
+target=$(case "$(uname -sm)" in
+  "Darwin arm64")   echo aarch64-apple-darwin ;;
+  "Darwin x86_64")  echo x86_64-apple-darwin ;;
+  "Linux x86_64")   echo x86_64-unknown-linux-musl ;;
+  "Linux aarch64")  echo aarch64-unknown-linux-musl ;;
+esac)
+mkdir -p ~/.local/bin
+curl -sSfL "https://github.com/zunhdev/album-covers/releases/latest/download/album-covers-$target.tar.gz" |
+  tar -xz -C ~/.local/bin covers
+```
+
+If your shell doesn't find `covers` afterwards, add `~/.local/bin` to your `PATH`. On Windows,
+download the `.zip`, extract `covers.exe` into a folder of your choice, and add that folder to
+your `PATH`.
+
+> [!TIP]
+> On macOS, a binary downloaded with a **browser** is blocked at first ("cannot be verified").
+> Allow it once with `xattr -d com.apple.quarantine covers`, or use the `curl` command above,
+> which doesn't trigger the check.
+
+<details>
+<summary><b>Verify a download</b></summary>
+
+<br>
+
+Each release lists SHA-256 checksums in `SHA256SUMS`, and every archive has a signed
+[build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations)
+that proves it was built by this repository's release workflow. With the
+[GitHub CLI](https://cli.github.com):
+
+```sh
+gh attestation verify album-covers-aarch64-apple-darwin.tar.gz --repo zunhdev/album-covers
+```
+
+</details>
+
+### Build with Cargo
+
+If you have [Rust](https://rustup.rs):
 
 ```sh
 cargo install --locked --git https://github.com/zunhdev/album-covers
 ```
 
-This builds the `covers` command and puts it in `~/.cargo/bin`, which the Rust installer already
-added to your `PATH`. Run the same command again to update.
+This builds `covers` and puts it in `~/.cargo/bin`. Run the same command again to update.
 
 ## Set up (once)
 
