@@ -1,0 +1,136 @@
+name: Release
+
+# Pushing a version tag (e.g. `v0.2.0`, matching Cargo.toml) builds `covers` for every
+# platform and publishes a GitHub release with the archives, SHA256SUMS and build
+# provenance attestations. Pull requests that change this file run the builds as a dry
+# run, without publishing.
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths: [.github/workflows/release.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    name: Check the version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: The tag must match the version in Cargo.toml
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::Tag $TAG doesn't match Cargo.toml (version $version). Bump the version first."
+            exit 1
+          fi
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: version
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # for the build provenance attestation
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, run: true }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, run: true }
+          - { target: aarch64-apple-darwin, os: macos-latest, run: true }
+          - { target: x86_64-apple-darwin, os: macos-latest, run: false } # cross-compiled
+          # Static C runtime, so the binary doesn't need the Visual C++ redistributable.
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, run: true, rustflags: -C target-feature=+crt-static }
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install the pinned toolchain and the target
+        run: |
+          rustup toolchain install
+          rustup target add ${{ matrix.target }}
+      - name: Install musl tools
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      # No build cache: release binaries are always built from scratch.
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Smoke test
+        if: matrix.run
+        shell: bash
+        run: |
+          target/${{ matrix.target }}/release/covers --version
+          target/${{ matrix.target }}/release/covers --help > /dev/null
+      - name: Package
+        shell: bash
+        run: |
+          name="album-covers-${{ matrix.target }}"
+          staging=$(mktemp -d)
+          cp README.md LICENSE-MIT LICENSE-APACHE "$staging/"
+          mkdir -p dist
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp "target/${{ matrix.target }}/release/covers.exe" "$staging/"
+            (cd "$staging" && 7z a -tzip "$GITHUB_WORKSPACE/dist/$name.zip" covers.exe README.md LICENSE-MIT LICENSE-APACHE)
+          else
+            cp "target/${{ matrix.target }}/release/covers" "$staging/"
+            tar -C "$staging" -czf "dist/$name.tar.gz" covers README.md LICENSE-MIT LICENSE-APACHE
+          fi
+          ls -l dist
+      - name: Attest build provenance
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: album-covers-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish the release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: album-covers-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum album-covers-* | tee SHA256SUMS
+      # Created as a draft first, so the release is complete before it becomes visible
+      # (and, with immutable releases, before it's locked).
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft \
+            --title "album-covers $TAG" --generate-notes
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" dist/*
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest

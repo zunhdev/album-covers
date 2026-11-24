@@ -24,6 +24,27 @@ cargo test --test live -- --ignored              # against the real APIs (needs 
 CI (`.github/workflows/ci.yml`) runs formatting, Clippy, docs, the tests on
 Linux, macOS and Windows, a build with the minimum supported Rust, and cargo-deny.
 
+## Releasing
+
+Releases are built and published by `.github/workflows/release.yml` when a version tag is pushed.
+
+1. In a pull request, bump `version` in `Cargo.toml` (and run `cargo check` so `Cargo.lock`
+   follows). Merge it once CI is green.
+2. Tag the merge commit on `main` and push the tag:
+   ```sh
+   git switch main && git pull
+   git tag -a v0.2.0 -m "album-covers 0.2.0"
+   git push origin v0.2.0
+   ```
+3. The workflow checks that the tag matches `Cargo.toml`, builds `covers` for Linux (x86-64 and
+   ARM64, static musl), macOS (Apple silicon and Intel) and Windows (x64), attests each archive's
+   build provenance, and publishes the release with `SHA256SUMS` and notes generated from the
+   merged pull requests.
+
+Archive names contain no version (`album-covers-<target>.tar.gz`), so
+`releases/latest/download/…` links in the README always point at the newest release.
+Only repository admins can create `v*` tags, and published releases are immutable.
+
 ## Keeping up to date
 
 Dependabot opens weekly pull requests for in-range crate updates and the CI actions.
