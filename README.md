@@ -50,26 +50,31 @@ Paste a TIDAL or Spotify artist link and get a clean, chronological discography 
 No Rust needed. Every [release](https://github.com/zunhdev/album-covers/releases/latest) has
 ready-to-run binaries:
 
-| System                           | File                                             |
-| -------------------------------- | ------------------------------------------------ |
-| macOS, Apple silicon             | `album-covers-aarch64-apple-darwin.tar.gz`       |
-| macOS, Intel                     | `album-covers-x86_64-apple-darwin.tar.gz`        |
-| Linux, x86-64 (any distribution) | `album-covers-x86_64-unknown-linux-musl.tar.gz`  |
-| Linux, ARM64 (any distribution)  | `album-covers-aarch64-unknown-linux-musl.tar.gz` |
-| Windows (x64 and ARM)            | `album-covers-x86_64-pc-windows-msvc.zip`        |
+| System                                | File                                             |
+| ------------------------------------- | ------------------------------------------------ |
+| macOS, Apple silicon                  | `album-covers-aarch64-apple-darwin.tar.gz`       |
+| macOS, Intel                          | `album-covers-x86_64-apple-darwin.tar.gz`        |
+| Linux, x86-64 (any distribution)      | `album-covers-x86_64-unknown-linux-musl.tar.gz`  |
+| Linux, ARM64 (any distribution)       | `album-covers-aarch64-unknown-linux-musl.tar.gz` |
+| Windows, x64 (also Windows 11 on ARM) | `album-covers-x86_64-pc-windows-msvc.zip`        |
 
 On macOS and Linux, this installs or updates `covers` in `~/.local/bin`:
 
 ```sh
-target=$(case "$(uname -sm)" in
-  "Darwin arm64")   echo aarch64-apple-darwin ;;
-  "Darwin x86_64")  echo x86_64-apple-darwin ;;
-  "Linux x86_64")   echo x86_64-unknown-linux-musl ;;
-  "Linux aarch64")  echo aarch64-unknown-linux-musl ;;
-esac)
-mkdir -p ~/.local/bin
-curl -sSfL "https://github.com/zunhdev/album-covers/releases/latest/download/album-covers-$target.tar.gz" |
-  tar -xz -C ~/.local/bin covers
+case "$(uname -sm)" in
+  "Darwin arm64")  target=aarch64-apple-darwin ;;
+  "Darwin x86_64") target=x86_64-apple-darwin ;;
+  "Linux x86_64")  target=x86_64-unknown-linux-musl ;;
+  "Linux aarch64") target=aarch64-unknown-linux-musl ;;
+  *)               target= ;;
+esac
+if [ -n "$target" ]; then
+  mkdir -p ~/.local/bin
+  curl -sSfL "https://github.com/zunhdev/album-covers/releases/latest/download/album-covers-$target.tar.gz" |
+    tar -xzf - -C ~/.local/bin covers
+else
+  echo "There's no prebuilt covers for $(uname -sm). Build it with Cargo instead (see below)." >&2
+fi
 ```
 
 If your shell doesn't find `covers` afterwards, add `~/.local/bin` to your `PATH`. On Windows,
@@ -88,12 +93,16 @@ your `PATH`.
 
 Each release lists SHA-256 checksums in `SHA256SUMS`, and every archive has a signed
 [build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations)
-that proves it was built by this repository's release workflow. With the
+that proves it was built by this repository's release workflow from a version tag. With the
 [GitHub CLI](https://cli.github.com):
 
 ```sh
-gh attestation verify album-covers-aarch64-apple-darwin.tar.gz --repo zunhdev/album-covers
+gh attestation verify album-covers-aarch64-apple-darwin.tar.gz --repo zunhdev/album-covers \
+  --cert-identity-regex '^https://github\.com/zunhdev/album-covers/\.github/workflows/release\.yml@refs/tags/v'
 ```
+
+`--cert-identity-regex` makes sure the attestation comes from the release workflow run for a
+`v…` tag, and not from the same workflow run on another branch.
 
 </details>
 
