@@ -2,14 +2,20 @@ name: Release
 
 # Pushing a version tag (e.g. `v0.2.0`, matching Cargo.toml) builds `covers` for every
 # platform and publishes a GitHub release with the archives, SHA256SUMS and build
-# provenance attestations. Pull requests that change this file run the builds as a dry
-# run, without publishing.
+# provenance attestations. A tag with a pre-release suffix (`v0.3.0-rc.1`) is published
+# as a pre-release. Pull requests that change this file, the dependencies or the toolchain
+# run the builds as a dry run, without attesting or publishing.
 
 on:
   push:
     tags: ["v*"]
   pull_request:
-    paths: [.github/workflows/release.yml]
+    # Changes that can break a release build while CI's native builds still pass.
+    paths:
+      - .github/workflows/release.yml
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
   workflow_dispatch:
 
 permissions:
@@ -24,12 +30,17 @@ env:
 
 jobs:
   version:
-    name: Check the version
+    name: Check the tag
     runs-on: ubuntu-latest
+    timeout-minutes: 30 # includes waiting for CI on the tagged commit
+    permissions:
+      contents: read
+      actions: read # to find CI's run for the tagged commit
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0 # for the comparison with main
       - name: The tag must match the version in Cargo.toml
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -40,25 +51,56 @@ jobs:
             echo "::error::Tag $TAG doesn't match Cargo.toml (version $version). Bump the version first."
             exit 1
           fi
+      - name: The tagged commit must be on main
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::Tag $TAG isn't on main. Tag the merge commit of the version bump on main."
+            exit 1
+          fi
+      - name: CI must have passed on the tagged commit
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          commit=$(git rev-parse HEAD)
+          # Retried for a while, in case main and the tag were pushed together.
+          for _ in 1 2 3 4 5 6; do
+            run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --event push \
+              --commit "$commit" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+            [ -n "$run" ] && break
+            sleep 20
+          done
+          if [ -z "$run" ]; then
+            echo "::error::CI hasn't run on $commit (tag $TAG). Tag a commit on main that CI has checked."
+            exit 1
+          fi
+          # Waits if CI is still running, e.g. when the tag is pushed right after the merge.
+          gh run watch "$run" --repo "$GITHUB_REPOSITORY" --interval 30 > /dev/null
+          conclusion=$(gh run view "$run" --repo "$GITHUB_REPOSITORY" --json conclusion --jq .conclusion)
+          if [ "$conclusion" != success ]; then
+            echo "::error::CI didn't pass on $commit (tag $TAG): $conclusion. See $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run"
+            exit 1
+          fi
 
   build:
     name: Build (${{ matrix.target }})
     needs: version
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-      id-token: write # for the build provenance attestation
-      attestations: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, run: true }
-          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, run: true }
-          - { target: aarch64-apple-darwin, os: macos-latest, run: true }
-          - { target: x86_64-apple-darwin, os: macos-latest, run: false } # cross-compiled
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm }
+          - { target: aarch64-apple-darwin, os: macos-latest }
+          # Cross-compiled, so the smoke test runs it under Rosetta.
+          - { target: x86_64-apple-darwin, os: macos-latest, exec: arch -x86_64 }
           # Static C runtime, so the binary doesn't need the Visual C++ redistributable.
-          - { target: x86_64-pc-windows-msvc, os: windows-latest, run: true, rustflags: -C target-feature=+crt-static }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, rustflags: -C target-feature=+crt-static }
     env:
       RUSTFLAGS: ${{ matrix.rustflags }}
     steps:
@@ -75,18 +117,26 @@ jobs:
       # No build cache: release binaries are always built from scratch.
       - name: Build
         run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Install Rosetta
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: arch -x86_64 /usr/bin/true 2> /dev/null || sudo softwareupdate --install-rosetta --agree-to-license
       - name: Smoke test
-        if: matrix.run
         shell: bash
         run: |
-          target/${{ matrix.target }}/release/covers --version
-          target/${{ matrix.target }}/release/covers --help > /dev/null
+          ${{ matrix.exec }} target/${{ matrix.target }}/release/covers --version
+          ${{ matrix.exec }} target/${{ matrix.target }}/release/covers --help > /dev/null
       - name: Package
         shell: bash
         run: |
           name="album-covers-${{ matrix.target }}"
           staging=$(mktemp -d)
-          cp README.md LICENSE-MIT LICENSE-APACHE "$staging/"
+          # Links to other files in the repository would be broken in the archive, so
+          # they point at this commit on GitHub instead.
+          sed -E \
+            -e "s|\]\(([^)#:]+)\)|](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/\1)|g" \
+            -e "s|src=\"([^\"#:]+)\"|src=\"https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$GITHUB_SHA/\1\"|g" \
+            README.md > "$staging/README.md"
+          cp LICENSE-MIT LICENSE-APACHE "$staging/"
           mkdir -p dist
           if [ "$RUNNER_OS" = Windows ]; then
             cp "target/${{ matrix.target }}/release/covers.exe" "$staging/"
@@ -96,11 +146,6 @@ jobs:
             tar -C "$staging" -czf "dist/$name.tar.gz" covers README.md LICENSE-MIT LICENSE-APACHE
           fi
           ls -l dist
-      - name: Attest build provenance
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/attest-build-provenance@v4
-        with:
-          subject-path: dist/*
       - uses: actions/upload-artifact@v7
         with:
           name: album-covers-${{ matrix.target }}
@@ -112,8 +157,11 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    # Only this job, which runs for tags alone, can attest, so pull request runs can't.
     permissions:
       contents: write
+      id-token: write # for the build provenance attestations
+      attestations: write
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -123,6 +171,10 @@ jobs:
       - name: Checksums
         working-directory: dist
         run: sha256sum album-covers-* | tee SHA256SUMS
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/album-covers-*
       # Created as a draft first, so the release is complete before it becomes visible
       # (and, with immutable releases, before it's locked).
       - name: Publish
@@ -130,7 +182,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft \
-            --title "album-covers $TAG" --generate-notes
-          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" dist/*
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          # A re-run of this job picks up the draft from the failed attempt.
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            prerelease=$([[ "$TAG" == *-* ]] && echo true || echo false)
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft \
+              --prerelease="$prerelease" --title "album-covers $TAG" --generate-notes
+          fi
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber dist/*
+          # Only the newest stable version becomes Latest: not a pre-release (v0.3.0-rc.1),
+          # and not a fix for an older line (v0.1.1 after v0.2.0).
+          newest=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v" --paginate \
+            --jq '.[].ref | ltrimstr("refs/tags/") | select(contains("-") | not)' | sort -V | tail -n 1)
+          latest=$([ "$TAG" = "$newest" ] && echo true || echo false)
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest="$latest"

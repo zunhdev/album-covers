@@ -36,13 +36,24 @@ Releases are built and published by `.github/workflows/release.yml` when a versi
    git tag -a v0.2.0 -m "album-covers 0.2.0"
    git push origin v0.2.0
    ```
-3. The workflow checks that the tag matches `Cargo.toml`, builds `covers` for Linux (x86-64 and
-   ARM64, static musl), macOS (Apple silicon and Intel) and Windows (x64), attests each archive's
-   build provenance, and publishes the release with `SHA256SUMS` and notes generated from the
-   merged pull requests.
+3. The workflow checks that the tag matches `Cargo.toml`, that the tagged commit is on `main`,
+   and that CI passed on it (it waits if CI is still running). It then builds `covers` for Linux
+   (x86-64 and ARM64, static musl), macOS (Apple silicon and Intel) and Windows (x64), runs each
+   binary once (the Intel macOS one under Rosetta), attests each archive's build provenance, and
+   publishes the release with `SHA256SUMS` and notes generated from the merged pull requests.
 
-Archive names contain no version (`album-covers-<target>.tar.gz`), so
-`releases/latest/download/…` links in the README always point at the newest release.
+A tag with a pre-release suffix, such as `v0.3.0-rc.1` (with `version = "0.3.0-rc.1"`), is
+published as a pre-release. Only the newest stable version becomes the Latest release, so a fix
+for an older line (`v0.1.1` after `v0.2.0`) doesn't replace it. If the publish job fails, re-run
+it: it picks up the draft release from the failed attempt.
+
+Pull requests that change the release workflow, `Cargo.toml`, `Cargo.lock` or
+`rust-toolchain.toml` run the builds as a dry run, so an update that breaks a release target
+shows up before the next tag. The dry run doesn't attest or publish.
+
+Archive names contain no version (`album-covers-<target>.tar.gz`, or `.zip` for Windows), so
+`releases/latest/download/…` links in the README always point at the newest release. The README
+in each archive links to the other repository files on GitHub.
 Only repository admins can create `v*` tags, and published releases are immutable.
 
 ## Keeping up to date
