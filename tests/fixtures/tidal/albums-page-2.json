@@ -2,13 +2,14 @@
   "data": [
     { "id": "1003", "type": "albums" },
     { "id": "1004", "type": "albums" },
-    { "id": "1005", "type": "albums" }
+    { "id": "1005", "type": "albums" },
+    { "id": "1006", "type": "albums" }
   ],
   "included": [
     {
       "id": "1003",
       "type": "albums",
-      "attributes": { "title": "Live at the Roundhouse", "releaseDate": "2019-11-22", "type": "ALBUM", "albumType": "ALBUM" },
+      "attributes": { "title": "Live at the Roundhouse", "releaseDate": "2019-11-22", "type": "ALBUM", "albumType": "ALBUM", "mediaTags": ["LOSSLESS", "DOLBY_ATMOS"] },
       "relationships": {
         "coverArt": {
           "data": [ { "id": "art1003video", "type": "artworks" }, { "id": "art1003", "type": "artworks" } ],
@@ -39,7 +40,7 @@
     {
       "id": "1004",
       "type": "albums",
-      "attributes": { "title": "Signals", "releaseDate": "2018-06-01", "type": "ALBUM", "albumType": "EP" },
+      "attributes": { "title": "Signals", "releaseDate": "2018-06-01", "type": "ALBUM", "albumType": "EP", "mediaTags": ["LOSSLESS"] },
       "relationships": {
         "coverArt": {
           "data": [ { "id": "art1004", "type": "artworks" } ],
@@ -66,6 +67,27 @@
           "data": [],
           "links": { "self": "/albums/1005/relationships/coverArt?countryCode=US" }
         }
+      }
+    },
+    {
+      "id": "1006",
+      "type": "albums",
+      "attributes": { "title": "First Light", "releaseDate": "2015-04-10", "type": "ALBUM", "albumType": "ALBUM", "mediaTags": ["HIRES_LOSSLESS", "LOSSLESS"] },
+      "relationships": {
+        "coverArt": {
+          "data": [ { "id": "art1006", "type": "artworks" } ],
+          "links": { "self": "/albums/1006/relationships/coverArt?countryCode=US" }
+        }
+      }
+    },
+    {
+      "id": "art1006",
+      "type": "artworks",
+      "attributes": {
+        "mediaType": "IMAGE",
+        "files": [
+          { "href": "https://resources.tidal.com/images/first/light/1280x1280.jpg", "type": "image/jpeg", "meta": { "width": 1280, "height": 1280 } }
+        ]
       }
     }
   ],

@@ -29,6 +29,8 @@ fn tidal() {
         output.contains("https://resources.tidal.com/images/"),
         "{output}"
     );
+    // Most of the band's albums are on TIDAL in hi-res.
+    assert!(output.contains("[Hi-Res]"), "{output}");
 }
 
 #[test]

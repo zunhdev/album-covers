@@ -205,6 +205,8 @@ fn json_output_is_one_document_on_stdout() {
     assert_eq!(document["albums"].as_array().unwrap().len(), 3);
     assert_eq!(document["albums"][0]["category"], "studio_album");
     assert_eq!(document["albums"][0]["cover"]["width"], 640);
+    // Spotify doesn't say which audio formats an album has.
+    assert_eq!(document["albums"][0]["badges"], serde_json::json!([]));
 }
 
 #[test]
@@ -250,16 +252,16 @@ fn tidal_end_to_end_with_a_rate_limited_page() {
         indoc! {"
             Studio albums (2)
 
-              2015  First Light
-                    album  https://tidal.com/album/1001/u
+              2015  First Light  [Hi-Res]
+                    album  https://tidal.com/album/1006/u
                     cover  https://resources.tidal.com/images/first/light/1280x1280.jpg
-              2021  Night Drive (Deluxe Edition)
+              2021  Night Drive (Deluxe Edition)  [Hi-Res]
                     album  https://tidal.com/album/1002/u
                     cover  https://resources.tidal.com/images/night/drive/1280x1280.jpg
 
             Live albums (1)
 
-              2019  Live at the Roundhouse
+              2019  Live at the Roundhouse  [Lossless] [Atmos]
                     album  https://tidal.com/album/1003/u
                     cover  https://resources.tidal.com/images/roundhouse/1280x1280.jpg
         "}

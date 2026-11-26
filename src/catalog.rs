@@ -106,6 +106,18 @@ impl Image {
     }
 }
 
+/// The audio formats a release is offered in, as the service tags them.
+/// Only TIDAL tags releases; for Spotify every field is false.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Formats {
+    /// CD quality: 16-bit/44.1 kHz.
+    pub lossless: bool,
+    /// Hi-res: 24-bit, up to 192 kHz.
+    pub hires: bool,
+    /// A Dolby Atmos mix.
+    pub atmos: bool,
+}
+
 /// The artist a catalog belongs to.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Artist {
@@ -127,6 +139,8 @@ pub struct Release {
     pub url: String,
     /// Cover renditions, in any order.
     pub images: Vec<Image>,
+    /// The audio formats the release is offered in.
+    pub formats: Formats,
     /// False when the artist only appears on the release (e.g. a various-artists compilation).
     pub by_artist: bool,
 }
