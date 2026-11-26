@@ -29,6 +29,8 @@ Paste a TIDAL or Spotify artist link and get a clean, chronological discography 
 - **One link in, the whole discography out.** Copy an artist link from the TIDAL or Spotify app's
   *Share* menu, or from the browser's address bar.
 - **The biggest cover there is:** 1280×1280 pixels on TIDAL, 640×640 on Spotify.
+- **The best-sounding copy.** On TIDAL, each album is marked Lossless, Hi-Res or Atmos, and when
+  TIDAL lists an album more than once, the link goes to the best-sounding copy.
 - **A list worth reading.** Studio and live albums are listed separately, duplicate editions are
   dropped, and albums the artist only guests on are left out.
 - **EPs, singles and compilations** on request.
@@ -221,6 +223,12 @@ covers --json https://tidal.com/artist/3974492 |
 covers --json https://tidal.com/artist/3974492 | jq -r '.albums[].cover.url'
 ```
 
+**Only the hi-res albums** (TIDAL):
+
+```sh
+covers --json https://tidal.com/artist/3974492 | jq -r '.albums[] | select(.badges | index("hires")) | .title'
+```
+
 **Only the live albums:**
 
 ```sh
@@ -233,13 +241,20 @@ In text mode, a one-line summary goes to stderr and the albums to stdout, so
 `covers … > albums.txt` saves just the list. Albums are grouped (studio albums, live albums, EPs,
 singles, compilations) and sorted by release date.
 
+On TIDAL, badges after the title show the album's audio: `[Lossless]` (CD quality, 16-bit/44.1 kHz),
+`[Hi-Res]` (24-bit, up to 192 kHz) and `[Atmos]` (a Dolby Atmos mix). TIDAL often lists an album
+once per format; the link goes to the best copy: hi-res, then lossless, then Atmos only. TIDAL
+doesn't publish exact sample rates, and Spotify has no audio information, so Spotify albums have
+no badges.
+
 <details>
 <summary><b>JSON format</b></summary>
 
 <br>
 
 `--json` prints one document. `category` is one of `studio_album`, `live_album`, `ep`, `single`
-or `compilation`. A cover's `width` and `height` are `null` when the service doesn't report them.
+or `compilation`. `badges` holds `lossless` or `hires`, and `atmos`; it's empty for Spotify. A
+cover's `width` and `height` are `null` when the service doesn't report them.
 
 ```json
 {
@@ -251,8 +266,9 @@ or `compilation`. A cover's `width` and `height` are `null` when the service doe
       "title": "Revelator",
       "release_date": "2011-06-07",
       "category": "studio_album",
-      "url": "https://tidal.com/album/90411175/u",
-      "cover": { "url": "https://resources.tidal.com/images/b0d76555/a1cf/41f3/97da/e9b8b3a72af6/1280x1280.jpg", "width": 1280, "height": 1280 }
+      "badges": ["hires"],
+      "url": "https://tidal.com/album/6674220/u",
+      "cover": { "url": "https://resources.tidal.com/images/6100e529/5945/4123/9d00/29d02cd58a29/1280x1280.jpg", "width": 1280, "height": 1280 }
     }
   ]
 }

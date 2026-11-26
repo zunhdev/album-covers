@@ -18,6 +18,7 @@ use crate::catalog::{Artist, Include, Service};
 const HEADING: Style = Style::new().bold();
 const DIM: Style = Style::new().dimmed();
 const YEAR: Style = AnsiColor::Cyan.on_default();
+const BADGE: Style = AnsiColor::Magenta.on_default();
 
 /// Everything the renderers need to know about a finished run.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -47,7 +48,7 @@ impl Report {
 /// ```text
 /// Studio albums (2)
 ///
-///   2011  Revelator
+///   2011  Revelator  [Hi-Res]
 ///         album  https://tidal.com/album/90411175/u
 ///         cover  https://resources.tidal.com/images/…/1280x1280.jpg
 /// ```
@@ -73,7 +74,12 @@ pub fn write_text(w: &mut dyn Write, report: &Report) -> io::Result<()> {
             .iter()
             .filter(|album| album.category == category)
         {
-            writeln!(w, "  {YEAR}{:<4}{YEAR:#}  {}", album.year(), album.title)?;
+            write!(w, "  {YEAR}{:<4}{YEAR:#}  {}", album.year(), album.title)?;
+            for (i, badge) in album.badges.iter().enumerate() {
+                let gap = if i == 0 { "  " } else { " " };
+                write!(w, "{gap}{BADGE}[{}]{BADGE:#}", badge.label())?;
+            }
+            writeln!(w)?;
             writeln!(w, "        {DIM}album{DIM:#}  {}", album.url)?;
             writeln!(w, "        {DIM}cover{DIM:#}  {}", album.cover.url)?;
         }
@@ -121,6 +127,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
+    use crate::albums::Badge;
     use crate::catalog::Image;
 
     fn report() -> Report {
@@ -128,6 +135,7 @@ mod tests {
             title: title.to_owned(),
             release_date: date.to_owned(),
             category,
+            badges: Vec::new(),
             url: format!("https://tidal.com/album/{id}/u"),
             cover: Image {
                 url: format!("https://img.example/{id}.jpg"),
@@ -135,7 +143,7 @@ mod tests {
                 height: size,
             },
         };
-        Report {
+        let mut report = Report {
             service: Service::Tidal,
             country: "US".to_owned(),
             artist: Artist {
@@ -161,7 +169,10 @@ mod tests {
                     Some(640),
                 ),
             ],
-        }
+        };
+        report.albums[0].badges = vec![Badge::Hires];
+        report.albums[2].badges = vec![Badge::Lossless, Badge::Atmos];
+        report
     }
 
     fn render(write: fn(&mut dyn Write, &Report) -> io::Result<()>, report: &Report) -> String {
@@ -181,10 +192,10 @@ mod tests {
             indoc! {"
                 Studio albums (2)
 
-                  2015  First Light
+                  2015  First Light  [Hi-Res]
                         album  https://tidal.com/album/10/u
                         cover  https://img.example/10.jpg
-                  2021  Night Drive
+                  2021  Night Drive  [Lossless] [Atmos]
                         album  https://tidal.com/album/30/u
                         cover  https://img.example/30.jpg
 
@@ -203,6 +214,7 @@ mod tests {
             render(write_text, &report())
                 .starts_with("\x1b[1mStudio albums\x1b[0m\x1b[2m (2)\x1b[0m\n")
         );
+        assert!(render(write_text, &report()).contains("First Light  \x1b[35m[Hi-Res]\x1b[0m\n"));
     }
 
     #[test]
@@ -252,6 +264,9 @@ mod tests {
                       "title": "First Light",
                       "release_date": "2015",
                       "category": "studio_album",
+                      "badges": [
+                        "hires"
+                      ],
                       "url": "https://tidal.com/album/10/u",
                       "cover": {
                         "url": "https://img.example/10.jpg",
@@ -263,6 +278,7 @@ mod tests {
                       "title": "Live at the Roundhouse",
                       "release_date": "2019-11",
                       "category": "live_album",
+                      "badges": [],
                       "url": "https://tidal.com/album/20/u",
                       "cover": {
                         "url": "https://img.example/20.jpg",

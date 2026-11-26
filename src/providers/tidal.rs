@@ -19,13 +19,19 @@
 //!   `Retry-After` (4 s when observed). Keeping the request count low is the
 //!   best defense; the HTTP client waits and retries.
 //! * TIDAL has no "compilation" album type. Covers go up to 1280×1280 px.
+//! * An album's `mediaTags` name its audio formats: `LOSSLESS` (16-bit/44.1 kHz),
+//!   `HIRES_LOSSLESS` (24-bit, up to 192 kHz) and `DOLBY_ATMOS`. TIDAL often lists
+//!   the same album several times, once per format, under different IDs. The exact
+//!   sample rate and bit depth aren't in the catalog. The playback manifests
+//!   (`/trackManifests`) show a preview's sample rate, but it was the same for a hi-res
+//!   copy and a copy tagged `LOSSLESS` only, so it doesn't tell copies apart.
 
 use std::collections::HashMap;
 
 use serde::Deserialize;
 
 use super::{Endpoints, MAX_PAGES, Query, artist_not_found, fetch_access_token};
-use crate::catalog::{Artist, Catalog, Image, Release, ReleaseType, Service};
+use crate::catalog::{Artist, Catalog, Formats, Image, Release, ReleaseType, Service};
 use crate::credentials::Credentials;
 use crate::error::{Error, Result};
 use crate::http::Client;
@@ -151,6 +157,7 @@ fn collect(identifiers: &[Identifier], included: &[Included], query: Query<'_>) 
                 release_type,
                 url: share_link("album", &identifier.id),
                 images,
+                formats: formats(&attributes.media_tags),
                 // The albums relationship lists the artist's own releases.
                 by_artist: true,
             })
@@ -192,6 +199,17 @@ fn display_title(title: &str, version: Option<&str>) -> String {
             format!("{title} ({version})")
         }
         _ => title.to_owned(),
+    }
+}
+
+/// The formats in an album's `mediaTags`, e.g. `["HIRES_LOSSLESS", "LOSSLESS"]`.
+/// Other tags are ignored.
+fn formats(media_tags: &[String]) -> Formats {
+    let has = |tag: &str| media_tags.iter().any(|t| t.eq_ignore_ascii_case(tag));
+    Formats {
+        lossless: has("LOSSLESS"),
+        hires: has("HIRES_LOSSLESS"),
+        atmos: has("DOLBY_ATMOS"),
     }
 }
 
@@ -284,6 +302,8 @@ struct AlbumAttributes {
     album_type: Option<String>,
     release_date: Option<String>,
     version: Option<String>,
+    #[serde(default)]
+    media_tags: Vec<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -411,7 +431,8 @@ mod tests {
             [
                 "First Light",
                 "Night Drive (Deluxe Edition)",
-                "Live at the Roundhouse"
+                "Live at the Roundhouse",
+                "First Light", // the hi-res copy, listed separately
             ]
         );
 
@@ -425,6 +446,23 @@ mod tests {
             "https://resources.tidal.com/images/first/light/1280x1280.jpg"
         );
         assert_eq!(first_light.images[1].width, Some(1280));
+        assert_eq!(
+            first_light.formats,
+            Formats {
+                lossless: true,
+                ..Formats::default()
+            }
+        );
+        let hires_copy = &catalog.releases[3];
+        assert_eq!(hires_copy.url, "https://tidal.com/album/1006/u");
+        assert_eq!(
+            hires_copy.formats,
+            Formats {
+                lossless: true,
+                hires: true,
+                atmos: false
+            }
+        );
 
         // The animated cover is skipped; only the still image remains.
         let roundhouse = &catalog.releases[2];
@@ -453,10 +491,12 @@ mod tests {
                 ReleaseType::Album,
                 ReleaseType::Album,
                 ReleaseType::Ep,
-                ReleaseType::Single
+                ReleaseType::Single,
+                ReleaseType::Album,
             ]
         );
         assert_eq!(catalog.releases[4].images, []); // no cover art
+        assert_eq!(catalog.releases[4].formats, Formats::default()); // no mediaTags
     }
 
     #[test]
@@ -484,7 +524,7 @@ mod tests {
         let catalog = fetch(&server, "US", Include::ALBUMS, &waits).unwrap();
 
         mocks.iter().for_each(Mock::assert);
-        assert_eq!(catalog.releases.len(), 3);
+        assert_eq!(catalog.releases.len(), 4);
         assert_eq!(waits.0.get(), 1);
     }
 
@@ -543,6 +583,27 @@ mod tests {
         assert_eq!(display_title("Songs", Some(" ")), "Songs");
         assert_eq!(display_title("Songs", Some("Live")), "Songs (Live)");
         assert_eq!(display_title("Songs (Live)", Some("live")), "Songs (Live)");
+    }
+
+    #[test]
+    fn media_tags_name_the_formats() {
+        let tags = |tags: &[&str]| formats(&tags.iter().map(|&t| t.to_owned()).collect::<Vec<_>>());
+        assert_eq!(tags(&[]), Formats::default());
+        assert_eq!(
+            tags(&["HIRES_LOSSLESS", "LOSSLESS"]),
+            Formats {
+                lossless: true,
+                hires: true,
+                atmos: false
+            }
+        );
+        assert_eq!(
+            tags(&["dolby_atmos", "SOMETHING_NEW"]),
+            Formats {
+                atmos: true,
+                ..Formats::default()
+            }
+        );
     }
 
     #[test]

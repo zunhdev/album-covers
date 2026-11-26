@@ -85,7 +85,7 @@ cli ──▶ credentials ──▶ providers::{spotify, tidal} ──▶ albums
 | `credentials.rs` | Credential lookup: environment, `./.env`, the per-user `credentials.env`. |
 | `providers/`  | One module per service, turning its API into a `catalog::Catalog`. Shared OAuth client-credentials flow in `mod.rs`. |
 | `http.rs`     | Blocking HTTP (ureq) with retries for 429/5xx and readable errors.           |
-| `albums.rs`   | Pure selection logic: best cover, live-album detection, de-duplication, sorting. |
+| `albums.rs`   | Pure selection logic: best cover, live-album detection, de-duplication (keeping the best-sounding copy), audio badges, sorting. |
 | `output.rs`   | Text and JSON rendering.                                                     |
 | `progress.rs` | The spinner, and retry notices on stderr.                                    |
 | `error.rs`    | The `Error` enum. Every message is written for the end user.                 |

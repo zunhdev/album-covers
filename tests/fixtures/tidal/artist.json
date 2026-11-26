@@ -36,7 +36,8 @@
           { "href": "https://tidal.com/browse/album/1002", "meta": { "type": "TIDAL_SHARING" } }
         ],
         "type": "ALBUM",
-        "albumType": "ALBUM"
+        "albumType": "ALBUM",
+        "mediaTags": ["HIRES_LOSSLESS", "LOSSLESS"]
       },
       "relationships": {
         "coverArt": {
@@ -64,7 +65,8 @@
         "numberOfItems": 11,
         "releaseDate": "2015-04-10",
         "type": "ALBUM",
-        "albumType": "ALBUM"
+        "albumType": "ALBUM",
+        "mediaTags": ["LOSSLESS"]
       },
       "relationships": {
         "coverArt": {

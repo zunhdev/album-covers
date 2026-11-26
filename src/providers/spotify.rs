@@ -12,13 +12,14 @@
 //! * Spotify reports EPs as `album_type: "single"`. Following Spotify's own
 //!   definition (EPs have 4–6 tracks), singles with 4 or more tracks count as EPs.
 //! * Covers come in 640, 300 and 64 px renditions.
+//! * There is no audio-quality information (no lossless or Dolby Atmos flags).
 //! * Since February 2026, Spotify only serves Development Mode apps whose
 //!   owner has a Premium subscription.
 
 use serde::Deserialize;
 
 use super::{Endpoints, MAX_PAGES, Query, artist_not_found, fetch_access_token};
-use crate::catalog::{Artist, Catalog, Image, Include, Release, ReleaseType, Service};
+use crate::catalog::{Artist, Catalog, Formats, Image, Include, Release, ReleaseType, Service};
 use crate::credentials::Credentials;
 use crate::error::{Error, Result};
 use crate::http::Client;
@@ -172,6 +173,8 @@ impl AlbumObject {
             release_date: self.release_date,
             release_type,
             images: self.images,
+            // The Web API has no audio-quality information.
+            formats: Formats::default(),
         }
     }
 }

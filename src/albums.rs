@@ -7,18 +7,21 @@
 //! 2. pick the largest cover of each release (releases without one are dropped);
 //! 3. split albums into studio and live recordings by title;
 //! 4. drop duplicates: services often list the same album several times
-//!    (regional editions, "Deluxe" or "Remastered" re-releases on the same day);
+//!    (regional editions, "Deluxe" or "Remastered" re-releases on the same day, and
+//!    on TIDAL one copy per audio format). The copy with the best audio stays:
+//!    hi-res, then lossless, then Dolby Atmos; on a tie, the first one listed;
 //! 5. sort by release date, then by title.
 //!
 //! Text handling is ASCII-only on purpose: the heuristics only look for English
 //! keywords, and other characters pass through untouched.
 
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use serde::Serialize;
 
-use crate::catalog::{Image, Include, Release, ReleaseType};
+use crate::catalog::{Formats, Image, Include, Release, ReleaseType};
 
 /// The output group of an album.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
@@ -67,12 +70,51 @@ impl Category {
     }
 }
 
+/// A tag for an album's audio formats, shown next to its title (TIDAL only).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Badge {
+    Lossless,
+    Hires,
+    Atmos,
+}
+
+impl Badge {
+    /// The badge's text in text output.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Lossless => "Lossless",
+            Self::Hires => "Hi-Res",
+            Self::Atmos => "Atmos",
+        }
+    }
+
+    /// The best stereo quality (hi-res implies lossless), then Atmos if there's a mix.
+    #[must_use]
+    pub fn for_formats(formats: Formats) -> Vec<Self> {
+        let stereo = if formats.hires {
+            Some(Self::Hires)
+        } else if formats.lossless {
+            Some(Self::Lossless)
+        } else {
+            None
+        };
+        stereo
+            .into_iter()
+            .chain(formats.atmos.then_some(Self::Atmos))
+            .collect()
+    }
+}
+
 /// An album selected for output.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Album {
     pub title: String,
     pub release_date: String,
     pub category: Category,
+    /// Audio format badges; empty when the service doesn't say (Spotify).
+    pub badges: Vec<Badge>,
     /// The album's page on the service.
     pub url: String,
     /// The largest cover rendition.
@@ -90,29 +132,53 @@ impl Album {
 /// Applies the whole pipeline described in the module docs.
 #[must_use]
 pub fn select(releases: Vec<Release>, include: Include) -> Vec<Album> {
-    let mut seen = HashSet::new();
-    let mut albums: Vec<Album> = releases
-        .into_iter()
-        .filter(|release| release.by_artist && include.contains(release.release_type))
-        .filter_map(|release| {
-            let cover = best_cover(&release.images)?.clone();
-            let category = categorize(&release);
-            let key = (
-                normalize_title(&release.title),
-                release.release_date.clone(),
-                category,
-            );
-            seen.insert(key).then_some(Album {
-                title: release.title,
-                release_date: release.release_date,
-                category,
-                url: release.url,
-                cover,
-            })
-        })
-        .collect();
+    // Where each album is in `albums`, by duplicate key.
+    let mut seen: HashMap<(String, String, Category), usize> = HashMap::new();
+    let mut albums: Vec<(Formats, Album)> = Vec::new();
+    for release in releases {
+        if !release.by_artist || !include.contains(release.release_type) {
+            continue;
+        }
+        let Some(cover) = best_cover(&release.images).cloned() else {
+            continue;
+        };
+        let category = categorize(&release);
+        let key = (
+            normalize_title(&release.title),
+            release.release_date.clone(),
+            category,
+        );
+        let formats = release.formats;
+        let album = Album {
+            title: release.title,
+            release_date: release.release_date,
+            category,
+            badges: Badge::for_formats(formats),
+            url: release.url,
+            cover,
+        };
+        match seen.entry(key) {
+            Entry::Vacant(entry) => {
+                entry.insert(albums.len());
+                albums.push((formats, album));
+            }
+            Entry::Occupied(entry) => {
+                let kept = &mut albums[*entry.get()];
+                if preference(formats) > preference(kept.0) {
+                    *kept = (formats, album);
+                }
+            }
+        }
+    }
+    let mut albums: Vec<Album> = albums.into_iter().map(|(_, album)| album).collect();
     albums.sort_by(chronological);
     albums
+}
+
+/// How much a copy's audio is preferred: hi-res, then lossless, then Dolby Atmos.
+/// So a hi-res stereo copy beats an Atmos-only one.
+const fn preference(formats: Formats) -> (bool, bool, bool) {
+    (formats.hires, formats.lossless, formats.atmos)
 }
 
 /// The largest image, or the first one when sizes are unknown or tied.
@@ -305,6 +371,7 @@ mod tests {
                 image("small", Some(64)),
                 image(&format!("{title}.jpg"), Some(640)),
             ],
+            formats: Formats::default(),
             by_artist: true,
         }
     }
@@ -470,6 +537,61 @@ mod tests {
             ]
         );
         assert_eq!(albums[0].cover.url, "Echoes.jpg");
+    }
+
+    #[test]
+    fn select_keeps_the_copy_with_the_best_audio() {
+        let lossless = Formats {
+            lossless: true,
+            ..Formats::default()
+        };
+        let hires = Formats {
+            hires: true,
+            ..lossless
+        };
+        let atmos = Formats {
+            atmos: true,
+            ..Formats::default()
+        };
+        let copy = |id: u32, formats| {
+            let mut release = release("Signs", "2019-02-15", ReleaseType::Album);
+            release.url = format!("https://tidal.com/album/{id}/u");
+            release.formats = formats;
+            release
+        };
+
+        let albums = select(
+            vec![
+                copy(1, lossless),
+                copy(2, atmos),
+                copy(3, hires),
+                copy(4, hires),
+            ],
+            Include::ALBUMS,
+        );
+        assert_eq!(albums.len(), 1);
+        assert_eq!(albums[0].url, "https://tidal.com/album/3/u"); // the first hi-res copy
+        assert_eq!(albums[0].badges, [Badge::Hires]);
+
+        // Stereo beats an Atmos-only copy.
+        let albums = select(vec![copy(1, atmos), copy(2, lossless)], Include::ALBUMS);
+        assert_eq!(albums[0].url, "https://tidal.com/album/2/u");
+    }
+
+    #[test]
+    fn badges_show_the_best_stereo_quality_and_atmos() {
+        let badges = |lossless, hires, atmos| {
+            Badge::for_formats(Formats {
+                lossless,
+                hires,
+                atmos,
+            })
+        };
+        assert_eq!(badges(false, false, false), Vec::<Badge>::new());
+        assert_eq!(badges(true, false, false), [Badge::Lossless]);
+        assert_eq!(badges(true, true, false), [Badge::Hires]);
+        assert_eq!(badges(false, false, true), [Badge::Atmos]);
+        assert_eq!(badges(true, true, true), [Badge::Hires, Badge::Atmos]);
     }
 
     #[test]
