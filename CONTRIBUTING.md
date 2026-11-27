@@ -36,11 +36,27 @@ Releases are built and published by `.github/workflows/release.yml` when a versi
    git tag -a v0.2.0 -m "album-covers 0.2.0"
    git push origin v0.2.0
    ```
-3. The workflow checks that the tag matches `Cargo.toml`, that the tagged commit is on `main`,
-   and that CI passed on it (it waits if CI is still running). It then builds `covers` for Linux
+3. The workflow checks that the tag's release isn't published yet, that the tag matches
+   `Cargo.toml`, that the tagged commit is on `main`, and that CI passed on it (it waits if CI
+   is still running). It then builds `covers` for Linux
    (x86-64 and ARM64, static musl), macOS (Apple silicon and Intel) and Windows (x64), runs each
    binary once (the Intel macOS one under Rosetta), attests each archive's build provenance, and
    publishes the release with `SHA256SUMS` and notes generated from the merged pull requests.
+4. To add your own notes, edit the release once it's published. The title and notes of an
+   immutable release can still be changed.
+
+If the workflow fails before it publishes, nothing has been released yet. Fix the cause (for
+example, merge the version bump), then delete the tag and push it again on the right commit:
+
+```sh
+git push origin :refs/tags/v0.2.0 && git tag -d v0.2.0
+```
+
+Don't publish the release yourself on GitHub's release page, even when the workflow failed.
+A release published there is immutable at once: it has no binaries, and its tag can't be moved
+or reused. While it is the Latest release, the README's install links return 404. If that
+happens anyway, mark the previous release as Latest (`gh release edit v0.1.1 --latest`), add a
+note to the empty release, and release the next version.
 
 A tag with a pre-release suffix, such as `v0.3.0-rc.1` (with `version = "0.3.0-rc.1"`), is
 published as a pre-release. Only the newest stable version becomes the Latest release, so a fix
