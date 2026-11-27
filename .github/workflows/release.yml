@@ -41,6 +41,18 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0 # for the comparison with main
+      # A release published on GitHub's release page is immutable at once, without binaries.
+      - name: The release must not be published yet
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          draft=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2> /dev/null || true)
+          if [ "$draft" = false ]; then
+            echo "::error::Release $TAG is already published, so it can't get binaries. Release the next version instead (see CONTRIBUTING.md)."
+            exit 1
+          fi
       - name: The tag must match the version in Cargo.toml
         if: startsWith(github.ref, 'refs/tags/')
         env:
