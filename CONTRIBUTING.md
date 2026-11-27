@@ -45,12 +45,18 @@ Releases are built and published by `.github/workflows/release.yml` when a versi
 4. To add your own notes, edit the release once it's published. The title and notes of an
    immutable release can still be changed.
 
-Don't create or publish the release on GitHub's "Draft a new release" page. That page tags
-whatever commit it targets, and a release published there is immutable at once: it has no
-binaries, and its tag can't be moved or reused. While it is the Latest release, the README's
-install links return 404. If that happens anyway, mark the previous release as Latest
-(`gh release edit v0.1.1 --latest`), add a note to the empty release, and release the next
-version.
+If the workflow fails before it publishes, nothing has been released yet. Fix the cause (for
+example, merge the version bump), then delete the tag and push it again on the right commit:
+
+```sh
+git push origin :refs/tags/v0.2.0 && git tag -d v0.2.0
+```
+
+Don't publish the release yourself on GitHub's release page, even when the workflow failed.
+A release published there is immutable at once: it has no binaries, and its tag can't be moved
+or reused. While it is the Latest release, the README's install links return 404. If that
+happens anyway, mark the previous release as Latest (`gh release edit v0.1.1 --latest`), add a
+note to the empty release, and release the next version.
 
 A tag with a pre-release suffix, such as `v0.3.0-rc.1` (with `version = "0.3.0-rc.1"`), is
 published as a pre-release. Only the newest stable version becomes the Latest release, so a fix
